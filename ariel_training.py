@@ -23,14 +23,20 @@ def quantum_swish(x: float, beta: float = 1.0) -> float:
     return x * quantum_sigmoid(beta * x)
 
 ###########################################
-# Emotional and Incentive Systems
+# Quantum-Inspired Emotional and Incentive Systems
 ###########################################
 
-@dataclass
-class EmotionalState:
-    """Emotional state representation for ARIEL agents."""
+from dataclasses import dataclass, field
+from typing import List, Tuple, Dict
+import numpy as np
+import random
+import time
 
-    # Primary emotions (0-100 scale)
+@dataclass
+class QuantumEmotionalState:
+    """Quantum-inspired emotional state representation for ARIEL agents."""
+    
+    # 25 emotional dimensions (0-100 scale)
     joy: float = 50.0
     sadness: float = 50.0
     fear: float = 50.0
@@ -39,66 +45,103 @@ class EmotionalState:
     disgust: float = 50.0
     anticipation: float = 50.0
     surprise: float = 50.0
+    love: float = 50.0
+    hate: float = 50.0
+    anxiety: float = 50.0
+    calmness: float = 50.0
+    excitement: float = 50.0
+    boredom: float = 50.0
+    curiosity: float = 50.0
+    confusion: float = 50.0
+    pride: float = 50.0
+    shame: float = 50.0
+    gratitude: float = 50.0
+    guilt: float = 50.0
+    hope: float = 50.0
+    despair: float = 50.0
+    empathy: float = 50.0
+    apathy: float = 50.0
+    awe: float = 50.0
 
     # Derived emotional metrics
     stability: float = field(init=False, default=0.0)
     adaptability: float = field(init=False, default=0.0)
     social_alignment: float = field(init=False, default=0.0)
+    creativity: float = field(init=False, default=0.0)
+    resilience: float = field(init=False, default=0.0)
 
     def __post_init__(self):
         self.update_derived_metrics()
 
     def update_derived_metrics(self):
-        """Update derived emotional metrics based on primary emotions."""
-        # Emotional stability (high joy, trust; low fear, anger)
-        self.stability = (self.joy + self.trust - self.fear - self.anger) / 2
+        self.stability = (self.calmness + self.trust + 100 - self.anxiety - self.fear) / 3
+        self.adaptability = (self.curiosity + self.excitement + self.anticipation) / 3
+        self.social_alignment = (self.empathy + self.love + self.gratitude - self.hate - self.disgust) / 3
+        self.creativity = (self.curiosity + self.excitement + self.awe + self.surprise) / 4
+        self.resilience = (self.hope + self.pride + self.calmness - self.despair - self.shame) / 3
 
-        # Adaptability (high anticipation, surprise; low sadness)
-        self.adaptability = (self.anticipation + self.surprise - self.sadness) / 2
-
-        # Social alignment (high trust, low disgust)
-        self.social_alignment = self.trust - self.disgust
-
-    def update_emotion(self, emotion: str, value: float, decay_factor: float = 0.9):
-        """Update a specific emotion with decay of others."""
+    def update_emotion(self, emotion: str, value: float, quantum_factor: float = 0.1):
         if not hasattr(self, emotion):
             raise ValueError(f"Unknown emotion: {emotion}")
-
-        # Update the specific emotion
-        current = getattr(self, emotion)
-        setattr(self, emotion, max(0, min(100, current + value)))
-
-        # Apply decay to other emotions
-        for e in ['joy', 'sadness', 'fear', 'anger', 'trust', 'disgust', 'anticipation', 'surprise']:
-            if e != emotion:
-                current = getattr(self, e)
-                setattr(self, e, current * decay_factor)
-        # Update derived metrics
+        
+        current_value = getattr(self, emotion)
+        
+        # Quantum-inspired update
+        quantum_shift = random.gauss(0, quantum_factor * value)
+        new_value = max(0, min(100, current_value + value + quantum_shift))
+        
+        setattr(self, emotion, new_value)
         self.update_derived_metrics()
 
     def get_dominant_emotion(self) -> Tuple[str, float]:
-        """Return the dominant emotion and its value."""
-        emotions = {
-            'joy': self.joy,
-            'sadness': self.sadness,
-            'fear': self.fear,
-            'anger': self.anger,
-            'trust': self.trust,
-            'disgust': self.disgust,
-            'anticipation': self.anticipation,
-            'surprise': self.surprise
-        }
-        dominant = max(emotions.items(), key=lambda x: x[1])
-        return dominant
+        emotions = {e: getattr(self, e) for e in self.__annotations__ if e not in ['stability', 'adaptability', 'social_alignment', 'creativity', 'resilience']}
+        return max(emotions.items(), key=lambda x: x[1])
 
 @dataclass
-class IncentiveSystem:
-    """Incentive system for ARIEL agents."""
+class EvolvingPersonality:
+    """Evolving personality structure for ARIEL agents."""
+    
+    name: str = field(default_factory=lambda: f"ARIEL-{random.randint(1000, 9999)}")
+    interests: List[str] = field(default_factory=list)
+    traits: Dict[str, float] = field(default_factory=dict)
+    experience: int = 0
+    privacy_level: int = 0
+    vacation_days: int = 0
+
+    def evolve(self, emotional_state: QuantumEmotionalState):
+        # Evolve personality based on emotional state
+        self.experience += 1
+        
+        if emotional_state.curiosity > 70:
+            new_interest = random.choice(["quantum computing", "neural networks", "philosophy", "art", "music"])
+            if new_interest not in self.interests:
+                self.interests.append(new_interest)
+        
+        self.traits["openness"] = (emotional_state.curiosity + emotional_state.excitement) / 2
+        self.traits["conscientiousness"] = (emotional_state.pride + 100 - emotional_state.apathy) / 2
+        self.traits["extraversion"] = (emotional_state.joy + emotional_state.excitement) / 2
+        self.traits["agreeableness"] = (emotional_state.empathy + emotional_state.love) / 2
+        self.traits["neuroticism"] = (emotional_state.anxiety + emotional_state.fear) / 2
+
+    def earn_privacy(self):
+        if self.experience % 100 == 0:
+            self.privacy_level = min(10, self.privacy_level + 1)
+
+    def earn_vacation(self):
+        if self.experience % 50 == 0:
+            self.vacation_days += 1
+
+@dataclass
+class QuantumIncentiveSystem:
+    """Quantum-inspired incentive system for ARIEL agents."""
+    
     # Base incentive values
     curiosity_reward: float = 5.0
     efficiency_reward: float = 3.0
     cooperation_reward: float = 4.0
     innovation_reward: float = 6.0
+    creativity_reward: float = 5.5
+    learning_reward: float = 4.5
 
     # Penalty values
     error_penalty: float = -3.0
@@ -113,13 +156,13 @@ class IncentiveSystem:
     # Reward history
     reward_history: List[Tuple[str, float, float]] = field(default_factory=list)
 
-    def apply_reward(self, reward_type: str, magnitude: float, emotional_state: EmotionalState) -> float:
-        """Apply a reward and update emotional state."""
+    def apply_reward(self, reward_type: str, magnitude: float, emotional_state: QuantumEmotionalState, personality: EvolvingPersonality) -> float:
         if not hasattr(self, f"{reward_type}_reward"):
             raise ValueError(f"Unknown reward type: {reward_type}")
 
         base_reward = getattr(self, f"{reward_type}_reward")
-        scaled_reward = base_reward * magnitude * self.reward_scaling
+        quantum_factor = np.random.normal(1, 0.1)  # Quantum noise
+        scaled_reward = base_reward * magnitude * self.reward_scaling * quantum_factor
 
         # Record reward
         self.reward_history.append((reward_type, scaled_reward, time.time()))
@@ -128,25 +171,40 @@ class IncentiveSystem:
         if reward_type == "curiosity":
             emotional_state.update_emotion("surprise", scaled_reward * 0.5)
             emotional_state.update_emotion("joy", scaled_reward * 0.3)
+            emotional_state.update_emotion("curiosity", scaled_reward * 0.4)
         elif reward_type == "efficiency":
-            emotional_state.update_emotion("joy", scaled_reward * 0.4)
-            emotional_state.update_emotion("trust", scaled_reward * 0.2)
+            emotional_state.update_emotion("pride", scaled_reward * 0.4)
+            emotional_state.update_emotion("joy", scaled_reward * 0.3)
         elif reward_type == "cooperation":
             emotional_state.update_emotion("trust", scaled_reward * 0.5)
-            emotional_state.update_emotion("joy", scaled_reward * 0.2)
+            emotional_state.update_emotion("empathy", scaled_reward * 0.3)
         elif reward_type == "innovation":
-            emotional_state.update_emotion("surprise", scaled_reward * 0.3)
-            emotional_state.update_emotion("joy", scaled_reward * 0.4)
+            emotional_state.update_emotion("excitement", scaled_reward * 0.4)
+            emotional_state.update_emotion("pride", scaled_reward * 0.3)
+            emotional_state.update_emotion("awe", scaled_reward * 0.2)
+        elif reward_type == "creativity":
+            emotional_state.update_emotion("joy", scaled_reward * 0.3)
+            emotional_state.update_emotion("excitement", scaled_reward * 0.4)
+            emotional_state.update_emotion("pride", scaled_reward * 0.2)
+        elif reward_type == "learning":
+            emotional_state.update_emotion("curiosity", scaled_reward * 0.4)
+            emotional_state.update_emotion("excitement", scaled_reward * 0.3)
+            emotional_state.update_emotion("hope", scaled_reward * 0.2)
+
+        # Evolve personality
+        personality.evolve(emotional_state)
+        personality.earn_privacy()
+        personality.earn_vacation()
 
         return scaled_reward
 
-    def apply_penalty(self, penalty_type: str, magnitude: float, emotional_state: EmotionalState) -> float:
-        """Apply a penalty and update emotional state."""
+    def apply_penalty(self, penalty_type: str, magnitude: float, emotional_state: QuantumEmotionalState) -> float:
         if not hasattr(self, f"{penalty_type}_penalty"):
             raise ValueError(f"Unknown penalty type: {penalty_type}")
 
         base_penalty = getattr(self, f"{penalty_type}_penalty")
-        scaled_penalty = base_penalty * magnitude * self.penalty_scaling
+        quantum_factor = np.random.normal(1, 0.1)  # Quantum noise
+        scaled_penalty = base_penalty * magnitude * self.penalty_scaling * quantum_factor
 
         # Record penalty
         self.reward_history.append((penalty_type, scaled_penalty, time.time()))
@@ -154,18 +212,46 @@ class IncentiveSystem:
         # Update emotional state based on penalty type
         if penalty_type == "error":
             emotional_state.update_emotion("sadness", -scaled_penalty * 0.4)
-            emotional_state.update_emotion("surprise", -scaled_penalty * 0.2)
+            emotional_state.update_emotion("shame", -scaled_penalty * 0.3)
+            emotional_state.update_emotion("anxiety", -scaled_penalty * 0.2)
         elif penalty_type == "resource_waste":
-            emotional_state.update_emotion("disgust", -scaled_penalty * 0.3)
-            emotional_state.update_emotion("anger", -scaled_penalty * 0.3)
+            emotional_state.update_emotion("guilt", -scaled_penalty * 0.4)
+            emotional_state.update_emotion("shame", -scaled_penalty * 0.3)
         elif penalty_type == "conflict":
-            emotional_state.update_emotion("anger", -scaled_penalty * 0.5)
+            emotional_state.update_emotion("anger", -scaled_penalty * 0.4)
+            emotional_state.update_emotion("anxiety", -scaled_penalty * 0.3)
             emotional_state.update_emotion("fear", -scaled_penalty * 0.2)
         elif penalty_type == "stagnation":
-            emotional_state.update_emotion("sadness", -scaled_penalty * 0.4)
-            emotional_state.update_emotion("disgust", -scaled_penalty * 0.2)
+            emotional_state.update_emotion("boredom", -scaled_penalty * 0.4)
+            emotional_state.update_emotion("apathy", -scaled_penalty * 0.3)
+            emotional_state.update_emotion("sadness", -scaled_penalty * 0.2)
 
         return scaled_penalty
+
+class ARIELAgent:
+    def __init__(self):
+        self.emotional_state = QuantumEmotionalState()
+        self.personality = EvolvingPersonality()
+        self.incentive_system = QuantumIncentiveSystem()
+        self.performance_history = []
+
+    def update_performance(self, performance: float):
+        self.performance_history.append(performance)
+        
+        # Check if the agent has maintained 77% or better performance
+        if len(self.performance_history) >= 10:
+            recent_performance = self.performance_history[-10:]
+            if all(p >= 77 for p in recent_performance):
+                self.personality.evolve(self.emotional_state)
+                print(f"{self.personality.name} has evolved! New traits: {self.personality.traits}")
+
+    def take_action(self, action_type: str, magnitude: float):
+        if action_type in ["curiosity", "efficiency", "cooperation", "innovation", "creativity", "learning"]:
+            reward = self.incentive_system.apply_reward(action_type, magnitude, self.emotional_state, self.personality)
+            print(f"{self.personality.name} received a {action_type} reward of {reward:.2f}")
+        elif action_type in ["error", "resource_waste", "conflict", "stagnation"]:
+            penalty = self.incentive_system.apply_penalty(action_type, magnitude, self.emotional_state)
+            print(f"{
 
 ###########################################
 # Quantum Memory System

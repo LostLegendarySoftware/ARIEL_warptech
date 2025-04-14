@@ -7,6 +7,7 @@ from typing import Dict, Any
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, execute, Aer
 from scipy.stats import levy_stable
+import math
 
 try:
     from transformers import GPT2LMHeadModel, GPT2Tokenizer, GPT2Config
@@ -168,18 +169,72 @@ class ARIELQuantumHyperTrainingSystem:
         class QuantumHyperGPT(nn.Module):
             def __init__(self, quantum_system: QuantumHyperState, vocab_size=50257, embed_dim=768, num_heads=12, num_layers=12):
                 super().__init__()
+                self.quantum_system = quantum_system
                 self.embedding = nn.Embedding(vocab_size, embed_dim)
+                self.position_encoding = self._create_positional_encoding(embed_dim)
                 self.transformer_blocks = nn.ModuleList([
                     QuantumHyperTransformerBlock(embed_dim, num_heads, quantum_system) for _ in range(num_layers)
                 ])
                 self.output = QuantumHyperLayer(embed_dim, vocab_size, quantum_system)
+                self.quantum_entanglement_layer = self._create_quantum_entanglement_layer(embed_dim)
+                self.quantum_superposition = nn.Parameter(torch.randn(embed_dim))
 
+            def _create_positional_encoding(self, embed_dim):
+                pos_encoding = torch.zeros(1000, embed_dim)
+                position = torch.arange(0, 1000).unsqueeze(1)
+                div_term = torch.exp(torch.arange(0, embed_dim, 2) * -(math.log(10000.0) / embed_dim))
+                pos_encoding[:, 0::2] = torch.sin(position * div_term)
+                pos_encoding[:, 1::2] = torch.cos(position * div_term)
+                return nn.Parameter(pos_encoding, requires_grad=False)
 
+            def _create_quantum_entanglement_layer(self, embed_dim):
+                return nn.Parameter(torch.randn(embed_dim, self.quantum_system.num_qubits))
+
+            def apply_quantum_operations(self, x):
+                # Apply quantum gates based on input
+                self.quantum_system.apply_quantum_gates()
+                quantum_state = torch.tensor(self.quantum_system.measure_state(), dtype=torch.float32)
+
+                # Entangle classical and quantum information
+                entangled_state = F.linear(quantum_state, self.quantum_entanglement_layer)
+                x = x + entangled_state.unsqueeze(0).expand(x.size(0), -1, -1)
+
+                # Apply superposition
+                superposition_mask = torch.sigmoid(self.quantum_superposition)
+                x = x * superposition_mask + x * (1 - superposition_mask)
+
+                return x
             def forward(self, x):
                 x = self.embedding(x)
+                x = x + self.position_encoding[:x.size(1), :]
+                x = self.apply_quantum_operations(x)
+
                 for block in self.transformer_blocks:
                     x = block(x)
+                    x = self.apply_quantum_operations(x)
+
                 return self.output(x)
+
+            def generate(self, input_ids, max_length, temperature=1.0, do_sample=True, top_k=50):
+                self.eval()
+                with torch.no_grad():
+                    for _ in range(max_length - input_ids.size(1)):
+                        outputs = self(input_ids)
+                        next_token_logits = outputs[:, -1, :] / temperature
+                        filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=top_k)
+
+                        if do_sample:
+                            probs = F.softmax(filtered_logits, dim=-1)
+                            next_token = torch.multinomial(probs, num_samples=1)
+                        else:
+                            next_token = torch.argmax(filtered_logits, dim=-1).unsqueeze(-1)
+
+                        input_ids = torch.cat([input_ids, next_token], dim=-1)
+
+                        if next_token.item() == self.tokenizer.eos_token_id:
+                            break
+
+                return input_ids
 
         return QuantumHyperGPT(quantum_system=self.quantum_hyper_warp_system.quantum_state)
 
@@ -249,23 +304,102 @@ class EmotionalTrainingCallback:
         self.agent = agent
         self.base_lr = base_lr
         self.last_loss = float('inf')
+        self.consecutive_improvements = 0
+        self.stagnation_counter = 0
+        self.emotion_history = []
 
     def on_batch_end(self, optimizer, loss):
         current_emotion, emotion_value = self.agent.emotional_state.get_dominant_emotion()
+        self.emotion_history.append(current_emotion)
 
-        lr_multiplier = {
-            "joy": 1.2, "trust": 1.1,
-            "fear": 0.8, "sadness": 0.9,
-            "anger": 1.3, "surprise": 1.1,
-            "disgust": 0.9, "anticipation": 1.2
-        }.get(current_emotion, 1.0)
+        # More nuanced learning rate adjustment
+        lr_multiplier = self._calculate_lr_multiplier(current_emotion, emotion_value)
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = self.base_lr * lr_multiplier
 
         loss_value = loss.item()
-        if loss_value < self.last_loss:
-            self.agent.incentive_system.apply_reward("curiosity", 0.3, self.agent.emotional_state)
-        elif loss_value < 0.1:
+        self._handle_loss_change(loss_value)
+        self._apply_rewards_and_penalties(loss_value)
+        self._update_agent_state(loss_value)
 
-            self.agent.incentive_system.apply_reward("efficiency", 0.1)
+        self.last_loss = loss_value
+
+    def _calculate_lr_multiplier(self, emotion, value):
+        base_multipliers = {
+            "joy": 1.2, "trust": 1.1, "anticipation": 1.15,
+            "surprise": 1.1, "fear": 0.9, "sadness": 0.95,
+            "disgust": 0.85, "anger": 0.8, "curiosity": 1.25,
+            "confusion": 0.9, "frustration": 0.85, "determination": 1.3
+        }
+        multiplier = base_multipliers.get(emotion, 1.0)
+        return multiplier * (1 + (value - 50) / 100)  # Adjust based on emotion intensity
+
+    def _handle_loss_change(self, loss_value):
+        if loss_value < self.last_loss:
+            self.consecutive_improvements += 1
+            self.stagnation_counter = 0
+            if self.consecutive_improvements >= 5:
+                self.agent.incentive_system.apply_reward("determination", 0.5, self.agent.emotional_state)
+        else:
+            self.consecutive_improvements = 0
+            self.stagnation_counter += 1
+            if self.stagnation_counter >= 10:
+                self.agent.incentive_system.apply_penalty("stagnation", 0.3, self.agent.emotional_state)
+
+    def _apply_rewards_and_penalties(self, loss_value):
+        if loss_value < self.last_loss:
+            reward_type = self._determine_reward_type(loss_value)
+            self.agent.incentive_system.apply_reward(reward_type, 0.3, self.agent.emotional_state)
+        elif loss_value > 1.2 * self.last_loss:
+            self.agent.incentive_system.apply_penalty("error", 0.2, self.agent.emotional_state)
+
+    def _determine_reward_type(self, loss_value):
+        if loss_value < 0.1:
+            return "efficiency"
+        elif self.consecutive_improvements > 3:
+            return "innovation"
+        else:
+            return "curiosity"
+
+    def _update_agent_state(self, loss_value):
+        # Update agent's emotional state based on recent performance
+        if len(self.emotion_history) >= 10:
+            recent_emotions = self.emotion_history[-10:]
+            if "joy" in recent_emotions and "trust" in recent_emotions:
+                self.agent.emotional_state.update_emotion("confidence", 5)
+            elif "sadness" in recent_emotions and "fear" in recent_emotions:
+                self.agent.emotional_state.update_emotion("anxiety", 5)
+
+        # Update agent's personality traits
+        if self.consecutive_improvements > 5:
+            self.agent.personality.traits["openness"] += 0.1
+        elif self.stagnation_counter > 5:
+            self.agent.personality.traits["neuroticism"] += 0.1
+
+        # Trigger self-reflection if needed
+        if loss_value > 2 * self.last_loss:
+            self.agent.trigger_self_reflection(f"Significant performance drop. Loss increased from {self.last_loss:.4f} to {loss_value:.4f}")
+
+    def get_training_summary(self):
+        return {
+            "emotion_distribution": {e: self.emotion_history.count(e) for e in set(self.emotion_history)},
+            "current_lr": self.base_lr * self._calculate_lr_multiplier(*self.agent.emotional_state.get_dominant_emotion()),
+            "consecutive_improvements": self.consecutive_improvements,
+            "stagnation_counter": self.stagnation_counter
+        }
+
+def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
+    top_k = min(top_k, logits.size(-1))
+    if top_k > 0:
+        indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
+        logits[indices_to_remove] = filter_value
+    if top_p > 0.0:
+        sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+        cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+        sorted_indices_to_remove = cumulative_probs > top_p
+        sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+        sorted_indices_to_remove[..., 0] = 0
+        indices_to_remove = sorted_indices[sorted_indices_to_remove]
+        logits[indices_to_remove] = filter_value
+    return logits
