@@ -236,3 +236,85 @@ if __name__ == '__main__':
     
     # Start the Flask server
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+from flask import Flask, render_template, jsonify, request
+import os
+import json
+import psutil
+
+app = Flask(__name__)
+
+# Simulated data for demonstration purposes
+algorithms = {
+    "ariel": {"name": "ARIEL Algorithm", "description": "Quantum-inspired LLM", "status": "Ready"},
+    "quantum-hyper": {"name": "Quantum-Hyper Network", "description": "Advanced transformer", "status": "Ready"},
+    "emotional-llm": {"name": "Emotional LLM", "description": "Sentiment-aware model", "status": "Ready"},
+    "self-heal": {"name": "Self-Healing System", "description": "Fault-tolerant architecture", "status": "Ready"},
+    "custom": {"name": "Custom Algorithm", "description": "Build from scratch", "status": "Empty"}
+}
+
+files = {
+    "ariel_algorithm.py": {"content": "# ARIEL Algorithm code here", "type": "python"},
+    "ariel_neural_net.py": {"content": "# Neural network implementation", "type": "python"},
+    "warp_system.py": {"content": "# Warp system implementation", "type": "python"},
+    "memory_manager.py": {"content": "# Memory management code", "type": "python"},
+    "ariel_training.py": {"content": "# Training procedures", "type": "python"},
+    "ariel_monitor.py": {"content": "# Monitoring utilities", "type": "python"},
+    "ds_config_3060.json": {"content": "{\"config\": \"data\"}", "type": "json"},
+    "ariel_credentials.json": {"content": "{\"credentials\": \"sensitive\"}", "type": "json"}
+}
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/algorithms')
+def get_algorithms():
+    return jsonify(algorithms)
+
+@app.route('/api/files')
+def get_files():
+    return jsonify(list(files.keys()))
+
+@app.route('/api/file/<filename>')
+def get_file(filename):
+    if filename in files:
+        return jsonify(files[filename])
+    return jsonify({"error": "File not found"}), 404
+
+@app.route('/api/file/<filename>', methods=['POST'])
+def save_file(filename):
+    content = request.json.get('content')
+    if filename in files:
+        files[filename]['content'] = content
+        return jsonify({"message": "File saved successfully"})
+    return jsonify({"error": "File not found"}), 404
+
+@app.route('/api/system-resources')
+def get_system_resources():
+    cpu_usage = psutil.cpu_percent()
+    memory = psutil.virtual_memory()
+    gpu_memory = 3.2  # This is a placeholder. You'd need to use a GPU library to get actual GPU memory usage
+    return jsonify({
+        "cpu_usage": cpu_usage,
+        "ram_usage": memory.used / (1024 * 1024 * 1024),  # Convert to GB
+        "ram_total": memory.total / (1024 * 1024 * 1024),  # Convert to GB
+        "gpu_memory_used": gpu_memory,
+        "gpu_memory_total": 12  # Assuming a 12GB GPU for this example
+    })
+
+@app.route('/api/run-code', methods=['POST'])
+def run_code():
+    code = request.json.get('code')
+    # In a real application, you'd want to run this code in a sandboxed environment
+    # This is just a simple simulation
+    return jsonify({"output": "Code executed successfully. Output: Hello, ARIEL!"})
+
+@app.route('/api/validate-code', methods=['POST'])
+def validate_code():
+    code = request.json.get('code')
+    # In a real application, you'd want to actually validate the code
+    # This is just a simple simulation
+    return jsonify({"valid": True, "message": "Code validation passed: no syntax errors"})
+
+if __name__ == '__main__':
+    app.run(debug=True)

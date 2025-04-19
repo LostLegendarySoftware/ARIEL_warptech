@@ -1,0 +1,32 @@
+training_config = {
+    "model_sizes": ["7B", "12B", "36B", "72B", "128B"],  # Start with smaller models
+    "learning_rate": 1e-5,
+    "batch_size": 32,
+    "num_epochs": 3,
+    "gradient_accumulation_steps": 4,
+    "warmup_steps": 1000,
+    "max_steps": 100000,
+    "evaluation_strategy": "steps",
+    "eval_steps": 5000,
+    "save_steps": 10000,
+    "output_dir": "./ariel_checkpoints",
+}
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train ARIEL model")
+    # ... (existing arguments)
+    parser.add_argument("--warp", type=str, help="Secret warp code for optimization level")
+    args = parser.parse_args()
+
+    config = ARIELConfig(
+        # ... (existing config setup)
+    )
+
+    train_ariel(config, warp_code=args.warp)
+
+def train_ariel(config, warp_code=None):
+    # Existing setup code...
+
+    warp_system = setup_warp_system(warp_code)
+
+    # Rest of the training function...

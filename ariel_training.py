@@ -1,8 +1,4 @@
-"""
-ARIEL Training System
-Advanced training module for large language models with quantum-inspired learning
-Optimized for 7B parameter models with 95%+ hardware efficiency
-"""
+
 from dataclasses import dataclass
 
 
@@ -1047,7 +1043,7 @@ class IncentiveSystem:
         """Apply a penalty and update emotional state."""
         if not hasattr(self, f"{penalty_type}_penalty"):
             raise ValueError(f"Unknown penalty type: {penalty_type}")
-
+//k
         base_penalty = getattr(self, f"{penalty_type}_penalty")
         scaled_penalty = base_penalty * magnitude * self.penalty_scaling
 
